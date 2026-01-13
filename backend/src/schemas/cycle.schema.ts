@@ -20,7 +20,7 @@ export class Cycle {
   @Prop({ type: [String], default: [] })
   symptoms: string[];
 
-  @Prop({ default: 'medium' })
+  @Prop({ type: String, default: 'medium' })
   averageFlow: string; // light, medium, heavy
 
   @Prop({ type: Object, default: {} })
