@@ -5,7 +5,7 @@ export type DailyLogDocument = DailyLog & Document;
 
 @Schema({ timestamps: true })
 export class DailyLog {
-  @Prop({ type: Date, required: true, unique: true })
+  @Prop({ type: Date, required: true })
   date: Date;
 
   @Prop({ type: [String], default: [] })
@@ -28,4 +28,4 @@ export class DailyLog {
 }
 
 export const DailyLogSchema = SchemaFactory.createForClass(DailyLog);
-DailyLogSchema.index({ date: 1 }); // Index for faster date queries
+DailyLogSchema.index({ date: 1 }, { unique: true }); // Unique index for date field
