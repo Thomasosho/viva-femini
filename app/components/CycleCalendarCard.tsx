@@ -225,7 +225,7 @@ export default function CycleCalendarCard() {
       border = '0.43px solid #FFFFFF';
       color = '#FFFFFF';
     } else if (event) {
-      // Period day - SOLID pink background with thicker white border to stand out distinctly
+      // Period day (active) - SOLID pink background with 2px white border
       backgroundColor = '#FB3179';
       border = '2px solid #FFFFFF';
       color = '#FFFFFF';
