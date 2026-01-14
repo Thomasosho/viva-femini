@@ -1,18 +1,26 @@
 'use client';
 
 import { useHealthReport } from '../../hooks/use-health-reports';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { dailyLogsApi, DailyLog } from '../../lib/api/daily-logs';
+import { cyclesApi } from '../../lib/api/cycles';
 
 interface PeriodLengthChartProps {
   month: number;
   year: number;
 }
 
+interface PeriodDayData {
+  date: Date;
+  flowIntensity: number;
+}
+
 export default function PeriodLengthChart({ month, year }: PeriodLengthChartProps) {
   const { healthReport, loading } = useHealthReport(month, year);
   const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
+  const [cycles, setCycles] = useState<any[]>([]);
+  const [cyclesLoading, setCyclesLoading] = useState(false);
 
   // Fetch daily logs for the month to get flow intensity data
   useEffect(() => {
@@ -37,23 +45,89 @@ export default function PeriodLengthChart({ month, year }: PeriodLengthChartProp
     fetchDailyLogs();
   }, [month, year]);
 
-  // Process daily logs to create chart data
-  // Show period days - include those with isPeriodDay=true, even if flowIntensity is 0 or not set
-  const chartData = dailyLogs
-    .filter(log => {
-      const isPeriod = log.isPeriodDay === true;
-      console.log('[PeriodLengthChart] Checking log:', { date: log.date, isPeriodDay: log.isPeriodDay, flowIntensity: log.flowIntensity, isPeriod });
-      return isPeriod;
-    })
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .map(log => ({
-      date: new Date(log.date),
-      flowIntensity: log.flowIntensity || 1, // Default to 1 if not set, so it shows on the chart
-    }));
-  
-  console.log('[PeriodLengthChart] Chart data:', chartData.length, chartData);
+  // Fetch cycles to calculate period days
+  useEffect(() => {
+    const fetchCycles = async () => {
+      try {
+        setCyclesLoading(true);
+        // Get a wider date range to ensure we catch all relevant cycles
+        const searchStart = new Date(year, month - 2, 1); // 2 months before
+        const searchEnd = new Date(year, month, 0); // End of selected month
+        const cycles = await cyclesApi.getAll(
+          searchStart.toISOString().split('T')[0],
+          searchEnd.toISOString().split('T')[0]
+        );
+        console.log('[PeriodLengthChart] Fetched cycles:', cycles.length, cycles);
+        setCycles(cycles);
+      } catch (err) {
+        console.error('Failed to load cycles:', err);
+        setCycles([]);
+      } finally {
+        setCyclesLoading(false);
+      }
+    };
+    fetchCycles();
+  }, [month, year]);
 
-  if (loading || logsLoading) {
+  // Combine period days from daily logs AND cycles
+  const chartData = useMemo<PeriodDayData[]>(() => {
+    const periodDaysMap = new Map<string, PeriodDayData>();
+
+    // 1. Add period days from daily logs (with flow intensity if available)
+    dailyLogs.forEach(log => {
+      if (log.isPeriodDay === true) {
+        const date = new Date(log.date);
+        if (date.getMonth() + 1 === month && date.getFullYear() === year) {
+          const dateKey = date.toISOString().split('T')[0];
+          periodDaysMap.set(dateKey, {
+            date,
+            flowIntensity: log.flowIntensity || 1,
+          });
+        }
+      }
+    });
+
+    // 2. Calculate period days from cycle data (if not already in daily logs)
+    cycles.forEach(cycle => {
+      if (cycle.startDate && cycle.periodLength) {
+        let cycleStart: Date;
+        if (typeof cycle.startDate === 'string') {
+          const dateStr = cycle.startDate.split('T')[0];
+          const [y, m, d] = dateStr.split('-').map(Number);
+          cycleStart = new Date(y, m - 1, d);
+        } else {
+          cycleStart = new Date(cycle.startDate);
+        }
+
+        const periodLength = cycle.periodLength || 5;
+
+        for (let i = 0; i < periodLength; i++) {
+          const periodDay = new Date(cycleStart);
+          periodDay.setDate(periodDay.getDate() + i);
+
+          if (periodDay.getMonth() + 1 === month && periodDay.getFullYear() === year) {
+            const dateKey = periodDay.toISOString().split('T')[0];
+            
+            // Only add if not already in map (daily logs take precedence)
+            if (!periodDaysMap.has(dateKey)) {
+              periodDaysMap.set(dateKey, {
+                date: periodDay,
+                flowIntensity: 1, // Default flow intensity for cycle-based period days
+              });
+            }
+          }
+        }
+      }
+    });
+
+    const result = Array.from(periodDaysMap.values())
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+    
+    console.log('[PeriodLengthChart] Final chart data:', result.length, result);
+    return result;
+  }, [dailyLogs, cycles, month, year]);
+
+  if (loading || logsLoading || cyclesLoading) {
     return (
       <div 
         className="bg-white border-0 w-full"
