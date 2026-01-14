@@ -12,13 +12,13 @@ export class DailyLog {
   symptoms: string[];
 
   @Prop({ type: Number, min: 0, max: 10, default: 0 })
-  flowIntensity: number; // 1-10 scale
+  flowIntensity: number; // How heavy the flow is, from 1 (light) to 10 (heavy)
 
   @Prop({ type: String, default: '' })
   notes: string;
 
   @Prop({ type: [String], default: [] })
-  healthActivities: string[]; // e.g., ['Pilates', 'Yoga']
+  healthActivities: string[]; // Things like exercise, meditation, etc.
 
   @Prop({ type: Boolean, default: false })
   isPeriodDay: boolean;
@@ -31,4 +31,4 @@ export class DailyLog {
 }
 
 export const DailyLogSchema = SchemaFactory.createForClass(DailyLog);
-DailyLogSchema.index({ date: 1 }, { unique: true }); // Unique index for date field
+DailyLogSchema.index({ date: 1 }, { unique: true }); // Each date can only have one log entry

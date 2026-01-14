@@ -14,7 +14,7 @@ export class DailyLogsService {
   async create(createDailyLogDto: CreateDailyLogDto): Promise<DailyLogDocument> {
     try {
       const logDate = new Date(createDailyLogDto.date);
-      logDate.setHours(0, 0, 0, 0); // Normalize to start of day
+      logDate.setHours(0, 0, 0, 0); // Reset time to midnight so we compare dates accurately
 
       const createdLog = new this.dailyLogModel({
         ...createDailyLogDto,
@@ -23,17 +23,17 @@ export class DailyLogsService {
 
       return await createdLog.save();
     } catch (error: any) {
-      // Handle duplicate key error (unique constraint on date)
+      // Oops, this date already has a log entry
       if (error.code === 11000 || error.name === 'MongoServerError') {
         const logDate = new Date(createDailyLogDto.date);
         logDate.setHours(0, 0, 0, 0);
         throw new ConflictException(`Daily log for date ${logDate.toISOString().split('T')[0]} already exists. Use PATCH to update instead.`);
       }
-      // Handle validation errors
+      // The data didn't pass validation checks
       if (error.name === 'ValidationError') {
         throw new BadRequestException(error.message);
       }
-      // Re-throw other errors
+      // Something else went wrong, pass it along
       throw error;
     }
   }
@@ -71,7 +71,7 @@ export class DailyLogsService {
     const logDate = new Date(date);
     logDate.setHours(0, 0, 0, 0);
 
-    // Use upsert: true to create if it doesn't exist
+    // Update existing log or create a new one if it doesn't exist yet
     const updatedLog = await this.dailyLogModel
       .findOneAndUpdate(
         { date: logDate }, 

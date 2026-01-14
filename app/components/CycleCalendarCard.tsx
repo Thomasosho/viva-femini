@@ -39,19 +39,19 @@ export default function CycleCalendarCard() {
   // State for edit cycle modal
   const [showEditCycleModal, setShowEditCycleModal] = useState(false);
   
-  // API hooks
+  // Get cycle data from the API
   const { cycle, loading: cycleLoading, reload: reloadCycle } = useCurrentCycle();
   const [periodDates, setPeriodDates] = useState<Set<string>>(new Set());
   const [loadingPeriods, setLoadingPeriods] = useState(false);
 
-  // Calculate period dates from cycles and daily logs
+  // Figure out which days should be highlighted as period days
   useEffect(() => {
     const calculatePeriodDates = async () => {
       setLoadingPeriods(true);
       try {
         const periodSet = new Set<string>();
         
-        // First, get period days from daily logs (manually logged)
+        // Start with period days that were manually logged
         const startOfMonth = new Date(selectedYear, selectedMonth, 1);
         const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
         const startDate = startOfMonth.toISOString().split('T')[0];
@@ -71,10 +71,10 @@ export default function CycleCalendarCard() {
           console.error('Failed to load daily logs:', err);
         }
         
-        // Also calculate period days from cycle data
-        // Get all cycles (we'll filter them to find ones that overlap with the selected month)
+        // Also calculate period days from cycle information
+        // Look for cycles that might include days in this month
         try {
-          // Get a wider date range to ensure we catch all relevant cycles
+          // Search a bit before and after the month to catch cycles that span across months
           const searchStart = new Date(selectedYear, selectedMonth - 1, 1); // Previous month
           const searchEnd = new Date(selectedYear, selectedMonth + 2, 0); // Next month
           
@@ -87,13 +87,13 @@ export default function CycleCalendarCard() {
           
           cycles.forEach(cycle => {
             if (cycle.startDate && cycle.periodLength) {
-              // Parse the start date - handle both ISO string and date object
+              // Convert the start date string into a proper date
               let cycleStart: Date;
               if (typeof cycle.startDate === 'string') {
-                // If it's a string like "2026-01-14", create date at midnight UTC, then adjust to local
-                const dateStr = cycle.startDate.split('T')[0]; // Remove time if present
+                // Parse a date string like "2026-01-14" into a date object
+                const dateStr = cycle.startDate.split('T')[0]; // Just get the date part, ignore time
                 const [year, month, day] = dateStr.split('-').map(Number);
-                cycleStart = new Date(year, month - 1, day); // month is 0-indexed in JS Date
+                cycleStart = new Date(year, month - 1, day); // JavaScript months start at 0 (January = 0)
               } else {
                 cycleStart = new Date(cycle.startDate);
               }
@@ -109,12 +109,12 @@ export default function CycleCalendarCard() {
                 selectedYear
               });
               
-              // Calculate all period days for this cycle
+              // Mark all the period days for this cycle
               for (let i = 0; i < periodLength; i++) {
                 const periodDay = new Date(cycleStart);
                 periodDay.setDate(periodDay.getDate() + i);
                 
-                // Check if this period day falls within the selected month
+                // Only include days that are in the month we're viewing
                 const periodMonth = periodDay.getMonth();
                 const periodYear = periodDay.getFullYear();
                 
@@ -149,7 +149,7 @@ export default function CycleCalendarCard() {
     calculatePeriodDates();
   }, [selectedMonth, selectedYear, cycle?._id, cycle?.startDate, cycle?.periodLength]);
 
-  // Calculate cycle day from current cycle
+  // Figure out which day of the cycle we're on today
   const cycleDay = useMemo(() => {
     if (!cycle?.startDate) return null;
     const startDate = new Date(cycle.startDate);

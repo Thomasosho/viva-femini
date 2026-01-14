@@ -5,13 +5,13 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import * as dotenv from 'dotenv';
 
-// Load environment variables
+// Read configuration from .env file
 dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS for frontend
+  // Allow the frontend to talk to this API
   const allowedOrigins = [
     'http://localhost:3000',
     'https://viva-femini-lemon.vercel.app',
@@ -24,7 +24,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global validation pipe
+  // Check that incoming data is valid before processing it
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -33,7 +33,7 @@ async function bootstrap() {
     }),
   );
 
-  // Swagger API Documentation
+  // Set up the API documentation
   const config = new DocumentBuilder()
     .setTitle('VivaFemini API')
     .setDescription('API documentation for VivaFemini - Cycle Tracking Application')

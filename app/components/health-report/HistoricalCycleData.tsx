@@ -19,7 +19,7 @@ export default function HistoricalCycleData({ month, year }: HistoricalCycleData
       return;
     }
 
-    // Create HTML content for the PDF
+    // Build the HTML document with all the cycle data
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -134,27 +134,27 @@ export default function HistoricalCycleData({ month, year }: HistoricalCycleData
       </html>
     `;
 
-    // Create a blob with the HTML content
+    // Turn the HTML into a file that can be downloaded
     const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     
-    // Create a temporary link and trigger download
+    // Create a download link and click it automatically
     const link = document.createElement('a');
     link.href = url;
     link.download = `Historical_Cycle_Data_${monthNames[month - 1]}_${year}.html`;
     document.body.appendChild(link);
     link.click();
     
-    // Clean up
+    // Remove the temporary link when we're done
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     
-    // Also open in a new window so user can print/save as PDF
+    // Open in a new window so users can print it or save as PDF
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.write(htmlContent);
       printWindow.document.close();
-      // Auto-print after a short delay
+      // Automatically open the print dialog after a moment
       setTimeout(() => {
         printWindow.print();
       }, 250);
@@ -192,7 +192,7 @@ export default function HistoricalCycleData({ month, year }: HistoricalCycleData
             };
           })
           .sort((a, b) => {
-            // Sort by date (newest first) - simplified comparison
+            // Show newest entries first
             return b.date.localeCompare(a.date);
           });
         

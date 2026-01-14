@@ -13,7 +13,7 @@ export default function RecommendedArticles() {
 
   const handleArticleClick = async (article: Article) => {
     if (!article._id) {
-      // If no ID, just show the article we have
+      // No ID available, so just show what we already have
       setSelectedArticle(article);
       setShowDetailModal(true);
       return;
@@ -26,7 +26,7 @@ export default function RecommendedArticles() {
       setShowDetailModal(true);
     } catch (err) {
       console.error('Failed to load article details:', err);
-      // Fallback to showing the article we have
+      // If fetching failed, just show the basic article info we already have
       setSelectedArticle(article);
       setShowDetailModal(true);
     } finally {
@@ -34,7 +34,7 @@ export default function RecommendedArticles() {
     }
   };
 
-  // Display loading state or error gracefully
+  // Show a loading message while we fetch articles
   if (loading) {
     return (
       <div 

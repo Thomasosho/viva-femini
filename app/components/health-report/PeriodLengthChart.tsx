@@ -45,12 +45,12 @@ export default function PeriodLengthChart({ month, year }: PeriodLengthChartProp
     fetchDailyLogs();
   }, [month, year]);
 
-  // Fetch cycles to calculate period days
+  // Get cycle information so we can figure out which days are period days
   useEffect(() => {
     const fetchCycles = async () => {
       try {
         setCyclesLoading(true);
-        // Get a wider date range to ensure we catch all relevant cycles
+        // Look at a wider date range so we don't miss any cycles
         const searchStart = new Date(year, month - 2, 1); // 2 months before
         const searchEnd = new Date(year, month, 0); // End of selected month
         const cycles = await cyclesApi.getAll(
@@ -69,11 +69,11 @@ export default function PeriodLengthChart({ month, year }: PeriodLengthChartProp
     fetchCycles();
   }, [month, year]);
 
-  // Combine period days from daily logs AND cycles
+  // Put together period days from both logged data and cycle information
   const chartData = useMemo<PeriodDayData[]>(() => {
     const periodDaysMap = new Map<string, PeriodDayData>();
 
-    // 1. Add period days from daily logs (with flow intensity if available)
+    // Start with period days that were manually logged
     dailyLogs.forEach(log => {
       if (log.isPeriodDay === true) {
         const date = new Date(log.date);
