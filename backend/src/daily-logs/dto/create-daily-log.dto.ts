@@ -34,4 +34,9 @@ export class CreateDailyLogDto {
   @IsOptional()
   @IsBoolean()
   isPeriodDay?: boolean;
+
+  @ApiProperty({ description: 'Pregnancy test result', enum: ['none', 'positive', 'negative', 'faint_line'], required: false })
+  @IsOptional()
+  @IsString()
+  pregnancyTestResult?: string;
 }

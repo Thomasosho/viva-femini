@@ -1,4 +1,71 @@
+'use client';
+
+import { useSymptoms } from '../hooks/use-symptoms';
+import { useEffect, useMemo, useState } from 'react';
+
 export default function TrendWatchCard() {
+  // Get symptoms for the last 30 days
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+  const endDate = new Date().toISOString().split('T')[0];
+  
+  const { symptoms, loading } = useSymptoms(startDate, endDate);
+  const [mostFrequentSymptom, setMostFrequentSymptom] = useState<string>('None');
+  const [trendStatus, setTrendStatus] = useState<{ text: string; emoji: string }>({ text: 'Stable', emoji: '😊' });
+
+  useEffect(() => {
+    if (symptoms && typeof symptoms === 'object' && !Array.isArray(symptoms)) {
+      // symptoms is a Record<string, number> (frequency map)
+      const symptomFreq = symptoms as Record<string, number>;
+      const entries = Object.entries(symptomFreq);
+      if (entries.length > 0) {
+        const sorted = entries.sort((a, b) => b[1] - a[1]);
+        setMostFrequentSymptom(sorted[0][0] || 'None');
+      }
+    }
+  }, [symptoms]);
+
+  if (loading) {
+    return (
+      <div 
+        className="bg-white border-0 w-full lg:w-[352px]"
+        style={{
+          height: 'auto',
+          borderRadius: '15px',
+          paddingTop: '18px',
+          paddingRight: '15px',
+          paddingBottom: '24px',
+          paddingLeft: '15px',
+          backgroundColor: '#FFFFFF',
+          border: 'none',
+          outline: 'none',
+          boxShadow: 'none',
+          fontFamily: 'Geist, sans-serif',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px',
+          position: 'relative'
+        }}
+      >
+        <h3 
+          style={{
+            fontFamily: 'Geist, sans-serif',
+            fontSize: '16px',
+            fontWeight: 600,
+            color: '#0F172A',
+            lineHeight: '100%',
+            margin: 0,
+            paddingBottom: '10px'
+          }}
+        >
+          Trend Watch
+        </h3>
+        <p style={{ color: '#6B7280', fontSize: '14px' }}>Loading...</p>
+      </div>
+    );
+  }
+
   return (
     <div 
       className="bg-white border-0 w-full lg:w-[352px]"
@@ -81,7 +148,7 @@ export default function TrendWatchCard() {
             width: 'fit-content'
           }}
         >
-          Bloating
+          {mostFrequentSymptom}
         </span>
       </div>
 
@@ -134,7 +201,7 @@ export default function TrendWatchCard() {
             gap: '4px'
           }}
         >
-          Stable 😊
+          {trendStatus.text} {trendStatus.emoji}
         </span>
       </div>
     </div>

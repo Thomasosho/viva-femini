@@ -1,4 +1,59 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useDailyLog } from '../hooks/use-daily-log';
+import { format } from 'date-fns';
+
+type PregnancyTestResult = 'none' | 'positive' | 'negative' | 'faint_line';
+
 export default function PregnancyTestSection() {
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const { dailyLog, loading, saveDailyLog } = useDailyLog(today);
+  const [selectedResult, setSelectedResult] = useState<PregnancyTestResult>('none');
+  const [saving, setSaving] = useState(false);
+  const [isClosed, setIsClosed] = useState(false);
+
+  // Load existing pregnancy test result
+  useEffect(() => {
+    if (dailyLog?.pregnancyTestResult) {
+      setSelectedResult(dailyLog.pregnancyTestResult);
+    }
+  }, [dailyLog]);
+
+  const handleResultSelect = async (result: PregnancyTestResult) => {
+    setSelectedResult(result);
+    setSaving(true);
+    try {
+      await saveDailyLog({
+        pregnancyTestResult: result,
+      });
+    } catch (err) {
+      console.error('Failed to save pregnancy test result:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleApply = async () => {
+    setSaving(true);
+    try {
+      await saveDailyLog({
+        pregnancyTestResult: selectedResult,
+      });
+    } catch (err) {
+      console.error('Failed to save pregnancy test result:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClose = () => {
+    setIsClosed(true);
+  };
+
+  // Don't render if closed
+  if (isClosed) return null;
+
   return (
     <div 
       className="bg-white relative border-0 pregnancy-test-section"
@@ -14,7 +69,11 @@ export default function PregnancyTestSection() {
       }}
     >
       {/* Close button on right */}
-      <button className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600">
+      <button 
+        onClick={handleClose}
+        className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600"
+        style={{ cursor: 'pointer', background: 'transparent', border: 'none' }}
+      >
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
           <g clipPath="url(#clip0_74_2004_pt)">
             <path d="M6.94455 0.868042C3.55914 0.868042 0.868164 3.55901 0.868164 6.94443C0.868164 10.3298 3.55914 13.0208 6.94455 13.0208C10.33 13.0208 13.0209 10.3298 13.0209 6.94443C13.0209 3.55901 10.33 0.868042 6.94455 0.868042ZM9.2883 9.98263L6.94455 7.63888L4.6008 9.98263L3.90636 9.28818L6.25011 6.94443L3.90636 4.60068L4.6008 3.90624L6.94455 6.24999L9.2883 3.90624L9.98275 4.60068L7.639 6.94443L9.98275 9.28818L9.2883 9.98263Z" fill="#9CA3AF"/>
@@ -35,7 +94,17 @@ export default function PregnancyTestSection() {
         {/* Test Result Options - 4 circular buttons */}
         <div className="grid grid-cols-4 gap-2 mb-4">
           {/* Didn't take test */}
-          <button className="flex flex-col items-center gap-2 p-3 transition-colors">
+          <button 
+            onClick={() => handleResultSelect('none')}
+            className="flex flex-col items-center gap-2 p-3 transition-colors"
+            style={{
+              borderRadius: '8px',
+              border: selectedResult === 'none' ? '2px solid #FB3179' : '1px solid transparent',
+              backgroundColor: selectedResult === 'none' ? '#FFE5EE' : 'transparent',
+              cursor: 'pointer'
+            }}
+            disabled={saving || loading}
+          >
             <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '32px', height: '32px' }}>
               <path d="M0 21.7014C0 9.71604 9.71604 0 21.7014 0C33.6867 0 43.4028 9.71604 43.4028 21.7014C43.4028 33.6867 33.6867 43.4028 21.7014 43.4028C9.71604 43.4028 0 33.6867 0 21.7014Z" fill="url(#paint0_linear_522_151_pt)"/>
               <g clipPath="url(#clip0_522_151_pt)">
@@ -60,7 +129,17 @@ export default function PregnancyTestSection() {
           </button>
 
           {/* Positive */}
-          <button className="flex flex-col items-center gap-2 p-3  rounded-full hover:border-pink-300 transition-colors">
+          <button 
+            onClick={() => handleResultSelect('positive')}
+            className="flex flex-col items-center gap-2 p-3 rounded-full hover:border-pink-300 transition-colors"
+            style={{
+              borderRadius: '8px',
+              border: selectedResult === 'positive' ? '2px solid #FB3179' : '1px solid transparent',
+              backgroundColor: selectedResult === 'positive' ? '#FFE5EE' : 'transparent',
+              cursor: 'pointer'
+            }}
+            disabled={saving || loading}
+          >
             <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '32px', height: '32px' }}>
               <path d="M0 21.7014C0 9.71604 9.71604 0 21.7014 0C33.6867 0 43.4028 9.71604 43.4028 21.7014C43.4028 33.6867 33.6867 43.4028 21.7014 43.4028C9.71604 43.4028 0 33.6867 0 21.7014Z" fill="url(#paint0_linear_522_164_pt)"/>
               <g clipPath="url(#clip0_522_164_pt)">
@@ -82,7 +161,17 @@ export default function PregnancyTestSection() {
           </button>
 
           {/* Faint line */}
-          <button className="flex flex-col items-center gap-2 p-3  rounded-full hover:border-pink-300 transition-colors">
+          <button 
+            onClick={() => handleResultSelect('faint_line')}
+            className="flex flex-col items-center gap-2 p-3 rounded-full hover:border-pink-300 transition-colors"
+            style={{
+              borderRadius: '8px',
+              border: selectedResult === 'faint_line' ? '2px solid #FB3179' : '1px solid transparent',
+              backgroundColor: selectedResult === 'faint_line' ? '#FFE5EE' : 'transparent',
+              cursor: 'pointer'
+            }}
+            disabled={saving || loading}
+          >
             <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '32px', height: '32px' }}>
               <path d="M0 21.7014C0 9.71604 9.71604 0 21.7014 0C33.6867 0 43.4028 9.71604 43.4028 21.7014C43.4028 33.6867 33.6867 43.4028 21.7014 43.4028C9.71604 43.4028 0 33.6867 0 21.7014Z" fill="url(#paint0_linear_522_164_fl)"/>
               <g clipPath="url(#clip0_522_164_fl)">
@@ -104,7 +193,17 @@ export default function PregnancyTestSection() {
           </button>
 
           {/* Negative */}
-          <button className="flex flex-col items-center gap-2 p-3  rounded-full hover:border-pink-300 transition-colors">
+          <button 
+            onClick={() => handleResultSelect('negative')}
+            className="flex flex-col items-center gap-2 p-3 rounded-full hover:border-pink-300 transition-colors"
+            style={{
+              borderRadius: '8px',
+              border: selectedResult === 'negative' ? '2px solid #FB3179' : '1px solid transparent',
+              backgroundColor: selectedResult === 'negative' ? '#FFE5EE' : 'transparent',
+              cursor: 'pointer'
+            }}
+            disabled={saving || loading}
+          >
             <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '32px', height: '32px' }}>
               <path d="M0 21.7014C0 9.71604 9.71604 0 21.7014 0C33.6867 0 43.4028 9.71604 43.4028 21.7014C43.4028 33.6867 33.6867 43.4028 21.7014 43.4028C9.71604 43.4028 0 33.6867 0 21.7014Z" fill="url(#paint0_linear_522_183_pt)"/>
               <g clipPath="url(#clip0_522_183_pt)">
@@ -127,8 +226,13 @@ export default function PregnancyTestSection() {
 
         {/* Apply Button */}
         <div className="flex justify-center">
-          <button className="py-2 px-8 bg-[#E5E7EB] text-[#9CA3AF] rounded-full text-sm font-medium hover:bg-pink-600 hover:text-white transition-colors" style={{ fontFamily: 'Geist, sans-serif' }}>
-            Apply
+          <button 
+            onClick={handleApply}
+            disabled={saving || loading}
+            className="py-2 px-8 bg-[#FB3179] text-white rounded-full text-sm font-medium hover:bg-pink-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+            style={{ fontFamily: 'Geist, sans-serif' }}
+          >
+            {saving ? 'Saving...' : 'Apply'}
           </button>
         </div>
       </div>

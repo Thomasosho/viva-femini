@@ -8,6 +8,7 @@ export interface DailyLog {
   notes: string;
   healthActivities: string[];
   isPeriodDay: boolean;
+  pregnancyTestResult?: 'none' | 'positive' | 'negative' | 'faint_line';
   createdAt?: string;
   updatedAt?: string;
 }
@@ -19,6 +20,7 @@ export interface CreateDailyLogDto {
   notes?: string;
   healthActivities?: string[];
   isPeriodDay?: boolean;
+  pregnancyTestResult?: 'none' | 'positive' | 'negative' | 'faint_line';
 }
 
 export interface UpdateDailyLogDto extends Partial<CreateDailyLogDto> {}

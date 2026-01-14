@@ -1,4 +1,22 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+
 export default function QuickActionSection() {
+  const router = useRouter();
+
+  const handleLogSymptoms = () => {
+    router.push('/tracking');
+  };
+
+  const handleLogPeriod = () => {
+    router.push('/tracking');
+  };
+
+  const handleHealthReport = () => {
+    router.push('/health');
+  };
+
   return (
     <div 
       className="bg-white border-0 w-full"
@@ -31,6 +49,7 @@ export default function QuickActionSection() {
       >
         {/* Log symptoms */}
         <button 
+          onClick={handleLogSymptoms}
           className="flex-1 min-w-0"
           style={{
             minWidth: '100px',
@@ -47,7 +66,14 @@ export default function QuickActionSection() {
             backgroundColor: '#F3F4F6',
             border: 'none',
             outline: 'none',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            transition: 'background-color 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#E5E7EB';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#F3F4F6';
           }}
         >
           <svg width="27" height="27" viewBox="0 0 27 27" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
@@ -72,6 +98,7 @@ export default function QuickActionSection() {
 
         {/* Log period */}
         <button 
+          onClick={handleLogPeriod}
           className="flex-1 min-w-0"
           style={{
             minWidth: '100px',
@@ -88,7 +115,14 @@ export default function QuickActionSection() {
             backgroundColor: '#F3F4F6',
             border: 'none',
             outline: 'none',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            transition: 'background-color 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#E5E7EB';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#F3F4F6';
           }}
         >
           <svg width="27" height="27" viewBox="0 0 27 27" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
@@ -115,6 +149,7 @@ export default function QuickActionSection() {
 
         {/* Health Report */}
         <button 
+          onClick={handleHealthReport}
           className="flex-1 min-w-0"
           style={{
             minWidth: '100px',
@@ -131,7 +166,14 @@ export default function QuickActionSection() {
             backgroundColor: '#F3F4F6',
             border: 'none',
             outline: 'none',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            transition: 'background-color 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#E5E7EB';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#F3F4F6';
           }}
         >
           <svg width="27" height="27" viewBox="0 0 27 27" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>

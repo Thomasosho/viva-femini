@@ -23,6 +23,9 @@ export class DailyLog {
   @Prop({ type: Boolean, default: false })
   isPeriodDay: boolean;
 
+  @Prop({ type: String, enum: ['none', 'positive', 'negative', 'faint_line'], default: 'none' })
+  pregnancyTestResult?: string;
+
   @Prop({ type: Object, default: {} })
   metadata: Record<string, any>;
 }

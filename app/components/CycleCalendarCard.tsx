@@ -1,6 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useCurrentCycle } from '../hooks/use-cycles';
+import { dailyLogsApi } from '../lib/api/daily-logs';
+import CreateCycleModal from './CreateCycleModal';
+import EditCycleModal from './EditCycleModal';
 
 export default function CycleCalendarCard() {
   const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THUR", "FRI", "SAT"];
@@ -12,9 +16,9 @@ export default function CycleCalendarCard() {
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
   
-  // State for selected month and year (default to October 2025)
-  const [selectedMonth, setSelectedMonth] = useState(9); // October (0-indexed)
-  const [selectedYear, setSelectedYear] = useState(2025);
+  // State for selected month and year (default to current month/year)
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [selectedYear, setSelectedYear] = useState(currentYear);
   
   // State for selected dates (stored as date strings)
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
@@ -28,8 +32,72 @@ export default function CycleCalendarCard() {
   // State for showing month/year picker
   const [showMonthYearPicker, setShowMonthYearPicker] = useState(false);
   
-  // Dates with events (example - you can modify this)
-  const datesWithEvents = new Set(['1', '5', '12', '18', '25']);
+  // State for create cycle modal
+  const [showCreateCycleModal, setShowCreateCycleModal] = useState(false);
+  
+  // State for edit cycle modal
+  const [showEditCycleModal, setShowEditCycleModal] = useState(false);
+  
+  // API hooks
+  const { cycle, loading: cycleLoading, reload: reloadCycle } = useCurrentCycle();
+  const [periodDates, setPeriodDates] = useState<Set<string>>(new Set());
+  const [loadingPeriods, setLoadingPeriods] = useState(false);
+
+  // Fetch period dates for the selected month
+  useEffect(() => {
+    const fetchPeriodDates = async () => {
+      setLoadingPeriods(true);
+      try {
+        const startOfMonth = new Date(selectedYear, selectedMonth, 1);
+        const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
+        const startDate = startOfMonth.toISOString().split('T')[0];
+        const endDate = endOfMonth.toISOString().split('T')[0];
+        const logs = await dailyLogsApi.getAll(startDate, endDate);
+        const periodSet = new Set<string>();
+        logs.forEach(log => {
+          if (log.isPeriodDay) {
+            const logDate = new Date(log.date);
+            periodSet.add(logDate.getDate().toString());
+          }
+        });
+        setPeriodDates(periodSet);
+      } catch (err) {
+        console.error('Failed to load period dates:', err);
+      } finally {
+        setLoadingPeriods(false);
+      }
+    };
+    fetchPeriodDates();
+  }, [selectedMonth, selectedYear]);
+
+  // Calculate cycle day from current cycle
+  const cycleDay = useMemo(() => {
+    if (!cycle?.startDate) return null;
+    const startDate = new Date(cycle.startDate);
+    const diffTime = today.getTime() - startDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return diffDays > 0 && diffDays <= (cycle.cycleLength || 28) ? diffDays : null;
+  }, [cycle, today]);
+
+  // Calculate next period date
+  const nextPeriodDate = useMemo(() => {
+    if (!cycle?.endDate) return null;
+    const endDate = new Date(cycle.endDate);
+    const diffTime = endDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? { date: endDate, days: diffDays } : null;
+  }, [cycle, today]);
+
+  // Calculate fertile window (typically days 10-17 of cycle, but simplified to day 14)
+  const fertileWindowStart = useMemo(() => {
+    if (!cycle?.startDate) return null;
+    const startDate = new Date(cycle.startDate);
+    startDate.setDate(startDate.getDate() + 13); // Day 14 of cycle
+    return startDate;
+  }, [cycle]);
+
+  // Dates with events (period days from API)
+  const datesWithEvents = periodDates;
   
   // Get the first day of the month and number of days in the month
   const getFirstDayOfMonth = (month: number, year: number) => {
@@ -476,14 +544,70 @@ export default function CycleCalendarCard() {
                     filter="url(#shadow)"
                   />
                 </svg>
-                <span className="text-3xl font-bold text-white relative z-10">21</span>
+                <span className="text-3xl font-bold text-white relative z-10">
+                  {cycleLoading ? '...' : (cycleDay || '?')}
+                </span>
               </div>
               {/* Cycle info BELOW the circle - centered, on same line */}
               <div className="text-center">
                 <p className="text-sm font-medium text-gray-700">
-                  Avg. Cycle: <span className="font-bold">28 Days</span> Currently: 78% of 100
+                  Avg. Cycle: <span className="font-bold">{cycle?.cycleLength || 28} Days</span> {cycleDay && cycle?.cycleLength ? `Currently: ${Math.round((cycleDay / cycle.cycleLength) * 100)}% of ${cycle.cycleLength}` : ''}
                 </p>
               </div>
+              {/* Cycle Management Buttons */}
+              {!cycleLoading && (
+                <div style={{ display: 'flex', gap: '8px', marginTop: '12px', justifyContent: 'center' }}>
+                  {!cycle ? (
+                    <button
+                      onClick={() => setShowCreateCycleModal(true)}
+                      style={{
+                        padding: '10px 20px',
+                        borderRadius: '20px',
+                        border: '1px solid #FB3179',
+                        backgroundColor: '#FFFFFF',
+                        color: '#FB3179',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        fontFamily: 'Geist, sans-serif',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#FFE5EE';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#FFFFFF';
+                      }}
+                    >
+                      Create Cycle
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowEditCycleModal(true)}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '20px',
+                        border: '1px solid #FB3179',
+                        backgroundColor: '#FFFFFF',
+                        color: '#FB3179',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        fontFamily: 'Geist, sans-serif',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#FFE5EE';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#FFFFFF';
+                      }}
+                    >
+                      Edit Cycle
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Next Period Info - button-like element with pink border */}
@@ -497,16 +621,47 @@ export default function CycleCalendarCard() {
                 }}
               >
                 <span className="text-sm font-medium text-gray-900" style={{ color: '#FB3179' }}>
-                  Next Period: <span style={{ color: '#FB3179', fontWeight: 'bold' }}>Nov 12</span> <span style={{ color: '#FB3179', fontWeight: 'bold' }}>(17 Days)</span>
+                  {nextPeriodDate ? (
+                    <>
+                      Next Period: <span style={{ color: '#FB3179', fontWeight: 'bold' }}>
+                        {monthNames[nextPeriodDate.date.getMonth()]} {nextPeriodDate.date.getDate()}
+                      </span> <span style={{ color: '#FB3179', fontWeight: 'bold' }}>({nextPeriodDate.days} Days)</span>
+                    </>
+                  ) : (
+                    <span style={{ color: '#6B7280' }}>No upcoming period</span>
+                  )}
                 </span>
               </div>
             </div>
 
             {/* Fertile Window */}
-            <p className="text-sm font-medium text-gray-700">Fertile window starts <span className="font-bold">Nov 3</span></p>
+            {fertileWindowStart && (
+              <p className="text-sm font-medium text-gray-700">
+                Fertile window starts <span className="font-bold">{monthNames[fertileWindowStart.getMonth()]} {fertileWindowStart.getDate()}</span>
+              </p>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Create Cycle Modal */}
+      <CreateCycleModal
+        isOpen={showCreateCycleModal}
+        onClose={() => setShowCreateCycleModal(false)}
+        onSuccess={() => {
+          reloadCycle();
+        }}
+      />
+
+      {/* Edit Cycle Modal */}
+      <EditCycleModal
+        isOpen={showEditCycleModal}
+        onClose={() => setShowEditCycleModal(false)}
+        onSuccess={() => {
+          reloadCycle();
+        }}
+        cycle={cycle}
+      />
     </div>
   );
 }

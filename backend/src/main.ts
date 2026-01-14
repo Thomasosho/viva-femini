@@ -15,6 +15,7 @@ async function bootstrap() {
   const allowedOrigins = [
     'http://localhost:3000',
     'https://viva-femini-lemon.vercel.app',
+    '*',
     ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
   ];
 

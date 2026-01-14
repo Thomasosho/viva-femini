@@ -1,4 +1,46 @@
-export default function FlowSymptomSummary() {
+'use client';
+
+import { useHealthReport } from '../../hooks/use-health-reports';
+
+interface FlowSymptomSummaryProps {
+  month: number;
+  year: number;
+}
+
+export default function FlowSymptomSummary({ month, year }: FlowSymptomSummaryProps) {
+  const { healthReport, loading } = useHealthReport(month, year);
+
+  if (loading) {
+    return (
+      <div 
+        className="bg-white border-0 w-full"
+        style={{
+          height: 'auto',
+          borderRadius: '15px',
+          padding: '20px',
+          backgroundColor: '#FFFFFF',
+          border: 'none',
+          outline: 'none',
+          boxShadow: 'none',
+          fontFamily: 'Geist, sans-serif',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+          boxSizing: 'border-box'
+        }}
+      >
+        <p style={{ color: '#6B7280', fontSize: '14px' }}>Loading flow & symptom summary...</p>
+      </div>
+    );
+  }
+
+  const cycleLength = healthReport?.averageCycleLength || 28;
+  const symptomFrequency = healthReport?.symptomFrequency || {};
+  const hasMoreFrequentSymptoms = Object.keys(symptomFrequency).length > 0;
+  const flowSummary = healthReport?.flowSummary || { light: 0, medium: 0, heavy: 0 };
+  const totalFlowDays = flowSummary.light + flowSummary.medium + flowSummary.heavy;
+  const isFlowTypical = totalFlowDays > 0 && totalFlowDays <= 7;
+
   return (
     <div 
       className="bg-white border-0 w-full"
@@ -55,7 +97,7 @@ export default function FlowSymptomSummary() {
           lineHeight: '1.5'
         }}
       >
-        Your average cycle length is 29 days. PMS symptoms were more frequent this month. Flow pattern remains within a typical range.
+        Your average cycle length is {cycleLength} days. {hasMoreFrequentSymptoms ? 'PMS symptoms were more frequent this month. ' : ''}Flow pattern {isFlowTypical ? 'remains within a typical range' : 'varies from typical range'}.
       </p>
 
       {/* Tips Section */}

@@ -1,18 +1,89 @@
-export default function HistoricalCycleData() {
-  const tableData = [
-    { date: 'Oct 18th', time: '01:57:25 am', topSymptom: 'Physical Pain', totalSymptoms: '6/10', note: 'After lunch...' },
-    { date: 'Oct 18th', time: '01:57:25 am', topSymptom: 'Physical Pain', totalSymptoms: '6/10', note: 'After lunch' },
-    { date: 'Oct 18th', time: '01:57:25 am', topSymptom: 'Physical Pain', totalSymptoms: '6/10', note: 'After lunch' },
-    { date: 'Oct 18th', time: '01:57:25 am', topSymptom: 'Physical Pain', totalSymptoms: '6/10', note: 'After lunch' },
-    { date: 'Oct 18th', time: '01:57:25 am', topSymptom: 'Physical Pain', totalSymptoms: '6/10', note: 'After lunch' },
-    { date: 'Oct 18th', time: '01:57:25 am', topSymptom: 'Physical Pain', totalSymptoms: '6/10', note: 'After lunch' },
-    { date: 'Oct 18th', time: '01:57:25 am', topSymptom: 'Physical Pain', totalSymptoms: '6/10', note: 'After lunch' },
-    { date: 'Oct 18th', time: '01:57:25 am', topSymptom: 'Physical Pain', totalSymptoms: '6/10', note: 'After lunch' },
-    { date: 'Oct 18th', time: '01:57:25 am', topSymptom: 'Physical Pain', totalSymptoms: '6/10', note: 'After lunch' },
-    { date: 'Oct 18th', time: '01:57:25 am', topSymptom: 'Physical Pain', totalSymptoms: '6/10', note: 'After lunch' },
-    { date: 'Oct 18th', time: '01:57:25 am', topSymptom: 'Physical Pain', totalSymptoms: '6/10', note: 'After lunch' },
-    { date: 'Oct 18th', time: '01:57:25 am', topSymptom: 'Physical Pain', totalSymptoms: '6/10', note: 'After lunch' }
-  ];
+'use client';
+
+import { useState, useEffect } from 'react';
+import { dailyLogsApi } from '../../lib/api/daily-logs';
+
+interface HistoricalCycleDataProps {
+  month: number;
+  year: number;
+}
+
+export default function HistoricalCycleData({ month, year }: HistoricalCycleDataProps) {
+  const [tableData, setTableData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  useEffect(() => {
+    const loadDailyLogs = async () => {
+      setLoading(true);
+      try {
+        const startOfMonth = new Date(year, month - 1, 1);
+        const endOfMonth = new Date(year, month, 0);
+        const startDate = startOfMonth.toISOString().split('T')[0];
+        const endDate = endOfMonth.toISOString().split('T')[0];
+        const logs = await dailyLogsApi.getAll(startDate, endDate);
+        
+        const formattedData = logs
+          .filter(log => log.symptoms && log.symptoms.length > 0)
+          .map(log => {
+            const logDate = new Date(log.date);
+            const monthName = monthNames[logDate.getMonth()];
+            const day = logDate.getDate();
+            const ordinal = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';
+            
+            const topSymptom = log.symptoms[0] || 'None';
+            const totalSymptoms = `${log.symptoms.length}/10`;
+            const time = log.createdAt ? new Date(log.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }).toLowerCase() : '';
+            
+            return {
+              date: `${monthName} ${day}${ordinal}`,
+              time,
+              topSymptom,
+              totalSymptoms,
+              note: log.notes || 'No note',
+            };
+          })
+          .sort((a, b) => {
+            // Sort by date (newest first) - simplified comparison
+            return b.date.localeCompare(a.date);
+          });
+        
+        setTableData(formattedData);
+      } catch (err) {
+        console.error('Failed to load daily logs:', err);
+        setTableData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadDailyLogs();
+  }, [month, year]);
+
+  if (loading) {
+    return (
+      <div 
+        className="bg-white border-0 w-full"
+        style={{
+          height: 'auto',
+          borderRadius: '15px',
+          padding: '20px',
+          backgroundColor: '#FFFFFF',
+          border: 'none',
+          outline: 'none',
+          boxShadow: 'none',
+          fontFamily: 'Geist, sans-serif',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+          boxSizing: 'border-box'
+        }}
+      >
+        <p style={{ color: '#6B7280', fontSize: '14px' }}>Loading historical cycle data...</p>
+      </div>
+    );
+  }
 
   return (
     <div 
@@ -65,7 +136,7 @@ export default function HistoricalCycleData() {
                 lineHeight: '1.2'
               }}
             >
-              Oct 2025
+              {monthNames[currentMonth - 1]} {currentYear}
             </span>
             {/* Dropdown arrow icon placeholder */}
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>

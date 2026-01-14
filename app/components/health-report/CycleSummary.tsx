@@ -1,4 +1,54 @@
-export default function CycleSummary() {
+'use client';
+
+import { useHealthReport } from '../../hooks/use-health-reports';
+
+interface CycleSummaryProps {
+  month: number;
+  year: number;
+}
+
+export default function CycleSummary({ month, year }: CycleSummaryProps) {
+  const { healthReport, loading } = useHealthReport(month, year);
+  
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  if (loading) {
+    return (
+      <div 
+        className="bg-white border-0 w-full"
+        style={{
+          height: 'auto',
+          borderRadius: '15px',
+          padding: '20px',
+          backgroundColor: '#FFFFFF',
+          border: 'none',
+          outline: 'none',
+          boxShadow: 'none',
+          fontFamily: 'Geist, sans-serif',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+          boxSizing: 'border-box'
+        }}
+      >
+        <p style={{ color: '#6B7280', fontSize: '14px' }}>Loading cycle summary...</p>
+      </div>
+    );
+  }
+
+  const cycleLength = healthReport?.averageCycleLength || 28;
+  const periodLength = healthReport?.averagePeriodLength || 5;
+  
+  // Calculate estimated next period (simplified - using average cycle length)
+  const estimatedNextPeriod = new Date();
+  estimatedNextPeriod.setDate(estimatedNextPeriod.getDate() + cycleLength);
+  
+  // Calculate ovulation window (typically days 12-16, simplified to days 14-16)
+  const ovulationStart = new Date();
+  ovulationStart.setDate(ovulationStart.getDate() + 14);
+  const ovulationEnd = new Date();
+  ovulationEnd.setDate(ovulationEnd.getDate() + 16);
+
   return (
     <div 
       className="bg-white border-0 w-full"
@@ -28,7 +78,7 @@ export default function CycleSummary() {
           marginBottom: '16px'
         }}
       >
-        Cycle Summary - October 2025
+        Cycle Summary - {monthNames[month - 1]} {year}
       </h2>
 
       {/* Badges - Top Row */}
@@ -92,7 +142,7 @@ export default function CycleSummary() {
                 color: '#0F172A'
               }}
             >
-              28 Days
+              {cycleLength} Days
             </span>
           </span>
         </div>
@@ -148,7 +198,7 @@ export default function CycleSummary() {
                 color: '#0F172A'
               }}
             >
-              5 Days
+              {periodLength} Days
             </span>
           </span>
         </div>
@@ -204,7 +254,7 @@ export default function CycleSummary() {
                 color: '#0F172A'
               }}
             >
-              Nov 4
+              {monthNames[estimatedNextPeriod.getMonth()]} {estimatedNextPeriod.getDate()}
             </span>
           </span>
         </div>
@@ -270,7 +320,7 @@ export default function CycleSummary() {
                 color: '#0F172A'
               }}
             >
-              Oct 17-22
+              {monthNames[ovulationStart.getMonth()]} {ovulationStart.getDate()}-{ovulationEnd.getDate()}
             </span>
           </span>
         </div>

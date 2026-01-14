@@ -18,9 +18,11 @@ export function useArticles() {
       setLoading(true);
       setError(null);
       const data = await articlesApi.getAll();
-      setArticles(data);
+      // Ensure data is an array
+      setArticles(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load articles');
+      setArticles([]);
     } finally {
       setLoading(false);
     }

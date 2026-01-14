@@ -1,4 +1,42 @@
-export default function PeriodLengthChart() {
+'use client';
+
+import { useHealthReport } from '../../hooks/use-health-reports';
+
+interface PeriodLengthChartProps {
+  month: number;
+  year: number;
+}
+
+export default function PeriodLengthChart({ month, year }: PeriodLengthChartProps) {
+  const { healthReport, loading } = useHealthReport(month, year);
+
+  if (loading) {
+    return (
+      <div 
+        className="bg-white border-0 w-full"
+        style={{
+          height: 'auto',
+          borderRadius: '15px',
+          padding: '20px',
+          backgroundColor: '#FFFFFF',
+          border: 'none',
+          outline: 'none',
+          boxShadow: 'none',
+          fontFamily: 'Geist, sans-serif',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+          boxSizing: 'border-box'
+        }}
+      >
+        <p style={{ color: '#6B7280', fontSize: '14px' }}>Loading period length chart...</p>
+      </div>
+    );
+  }
+
+  // Use periodLengthHistory from health report, or create sample data if not available
+  const periodHistory = healthReport?.periodLengthHistory || [];
+  
   return (
     <div 
       className="bg-white border-0 w-full"

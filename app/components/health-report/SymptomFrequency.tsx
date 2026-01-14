@@ -1,11 +1,84 @@
-export default function SymptomFrequency() {
-  const symptoms = [
-    { label: 'Physical Pain', percentage: 55, color: '#DF0910', iconColor: '#DF0910' },
-    { label: 'Mood & Mental', percentage: 75, color: '#E643FF', iconColor: '#07A537' },
-    { label: 'Digestion & Appetite', percentage: 62, color: '#07A537', iconColor: '#FACC15' },
-    { label: 'Sexual Health', percentage: 32, color: '#EC4899', iconColor: '#EC4899' },
-    { label: 'Digestion & Appetite', percentage: 23, color: '#FACC15', iconColor: '#FACC15' }
-  ];
+'use client';
+
+import { useHealthReport } from '../../hooks/use-health-reports';
+import { useMemo } from 'react';
+
+interface SymptomFrequencyProps {
+  month: number;
+  year: number;
+}
+
+export default function SymptomFrequency({ month, year }: SymptomFrequencyProps) {
+  const { healthReport, loading } = useHealthReport(month, year);
+
+  const symptomColors = ['#DF0910', '#E643FF', '#07A537', '#EC4899', '#FACC15', '#3B82F6'];
+  
+  const symptoms = useMemo(() => {
+    if (!healthReport?.symptomFrequency) return [];
+    
+    const freq = healthReport.symptomFrequency;
+    const total = Object.values(freq).reduce((sum, count) => sum + count, 0);
+    
+    if (total === 0) return [];
+    
+    return Object.entries(freq)
+      .map(([label, count], index) => ({
+        label,
+        percentage: Math.round((count / total) * 100),
+        color: symptomColors[index % symptomColors.length],
+        iconColor: symptomColors[index % symptomColors.length],
+      }))
+      .sort((a, b) => b.percentage - a.percentage)
+      .slice(0, 5); // Top 5 symptoms
+  }, [healthReport?.symptomFrequency]);
+
+  if (loading) {
+    return (
+      <div 
+        className="bg-white border-0 w-full"
+        style={{
+          height: 'auto',
+          borderRadius: '15px',
+          padding: '20px',
+          backgroundColor: '#FFFFFF',
+          border: 'none',
+          outline: 'none',
+          boxShadow: 'none',
+          fontFamily: 'Geist, sans-serif',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+          boxSizing: 'border-box'
+        }}
+      >
+        <p style={{ color: '#6B7280', fontSize: '14px' }}>Loading symptom frequency...</p>
+      </div>
+    );
+  }
+
+  if (symptoms.length === 0) {
+    return (
+      <div 
+        className="bg-white border-0 w-full"
+        style={{
+          height: 'auto',
+          borderRadius: '15px',
+          padding: '20px',
+          backgroundColor: '#FFFFFF',
+          border: 'none',
+          outline: 'none',
+          boxShadow: 'none',
+          fontFamily: 'Geist, sans-serif',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+          boxSizing: 'border-box'
+        }}
+      >
+        <p style={{ color: '#6B7280', fontSize: '14px' }}>No symptom data available</p>
+      </div>
+    );
+  }
 
   const DonutChart = ({ percentage, color }: { percentage: number; color: string }) => {
     const radius = 40;
