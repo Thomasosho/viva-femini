@@ -64,6 +64,7 @@ export default function CycleCalendarCard() {
             }
           }
         });
+        console.log('Period dates loaded for', monthNames[selectedMonth], selectedYear, ':', Array.from(periodSet));
         setPeriodDates(periodSet);
       } catch (err) {
         console.error('Failed to load period dates:', err);
@@ -171,10 +172,11 @@ export default function CycleCalendarCard() {
     return selectedDates.has(dateString);
   };
   
-  // Check if date has event
+  // Check if date has event (period day)
   const hasEvent = (day: number | null) => {
     if (day === null) return false;
-    return datesWithEvents.has(day.toString());
+    const hasPeriod = datesWithEvents.has(day.toString());
+    return hasPeriod;
   };
   
   // Check if date is hovered
@@ -214,38 +216,42 @@ export default function CycleCalendarCard() {
     let backgroundColor = 'transparent';
     let border = '0.43px solid #FFFFFF';
     let color = '#FFFFFF';
+    let opacity = 1;
     
     // Priority: Selected > Period Day (event) > Current > Default
-    // Period days should always be highlighted (pink) unless selected
+    // Period days should always be highlighted distinctly (solid pink background)
     if (selected) {
       backgroundColor = '#0D34F9';
       border = '0.43px solid #FFFFFF';
       color = '#FFFFFF';
     } else if (event) {
-      // Period day - highlight in pink
+      // Period day - SOLID pink background with thicker white border to stand out distinctly
       backgroundColor = '#FB3179';
-      border = '0.43px solid #FFFFFF';
+      border = '2px solid #FFFFFF';
       color = '#FFFFFF';
+      opacity = 1;
     } else if (current) {
       backgroundColor = '#FFFFFF';
       border = '0.43px solid #FFFFFF';
       color = '#000000';
     } else {
+      // Regular date - fully transparent background with subtle white border
       backgroundColor = 'transparent';
-      border = '0.43px solid #FFFFFF';
+      border = '0.43px solid rgba(255, 255, 255, 0.4)';
       color = '#FFFFFF';
     }
     
-    // If current day is also a period day, add a pink border or indicator
+    // If current day is also a period day, make sure it shows as period day (pink)
     if (current && event && !selected) {
       backgroundColor = '#FB3179';
       border = '2px solid #FFFFFF';
       color = '#FFFFFF';
     }
     
-    // Add white outline on hover
-    if (hovered && !selected) {
+    // Add white outline on hover (but not if it's a period day, keep it distinct)
+    if (hovered && !selected && !event) {
       border = '2px solid #FFFFFF';
+      backgroundColor = 'rgba(255, 255, 255, 0.1)';
     }
     
     return {
@@ -253,6 +259,11 @@ export default function CycleCalendarCard() {
       backgroundColor,
       border,
       color,
+      opacity,
+      // Ensure period days stand out with box shadow, scale, and higher z-index
+      boxShadow: event && !selected ? '0 2px 8px rgba(251, 49, 121, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.3)' : 'none',
+      transform: event && !selected ? 'scale(1.08)' : 'scale(1)',
+      zIndex: event && !selected ? 10 : 1,
     };
   };
   
