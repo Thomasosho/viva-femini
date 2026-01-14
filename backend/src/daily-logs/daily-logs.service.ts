@@ -71,13 +71,14 @@ export class DailyLogsService {
     const logDate = new Date(date);
     logDate.setHours(0, 0, 0, 0);
 
+    // Use upsert: true to create if it doesn't exist
     const updatedLog = await this.dailyLogModel
-      .findOneAndUpdate({ date: logDate }, updateDailyLogDto, { new: true })
+      .findOneAndUpdate(
+        { date: logDate }, 
+        { ...updateDailyLogDto, date: logDate }, 
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      )
       .exec();
-
-    if (!updatedLog) {
-      throw new NotFoundException(`Daily log for date ${date} not found`);
-    }
 
     return updatedLog;
   }

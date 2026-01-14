@@ -1,11 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
 import { ExpressAdapter } from '@nestjs/platform-express';
-import * as express from 'express';
 import * as dotenv from 'dotenv';
 
 // Load environment variables
 dotenv.config();
+
+// Import express using require to avoid TypeScript issues with Express 5
+const express = require('express');
 
 let cachedApp: any;
 
@@ -32,8 +34,9 @@ async function createApp() {
   });
 
   // Global validation pipe
+  const { ValidationPipe } = await import('@nestjs/common');
   app.useGlobalPipes(
-    new (await import('@nestjs/common')).ValidationPipe({
+    new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
@@ -62,7 +65,7 @@ async function createApp() {
   return expressApp;
 }
 
-export default async function handler(req: express.Request, res: express.Response) {
+export default async function handler(req: any, res: any) {
   const app = await createApp();
   app(req, res);
 }

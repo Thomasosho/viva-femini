@@ -5,15 +5,20 @@ import { useTracking } from './TrackingContext';
 
 export default function SaveButtonSection() {
   const [isHovered, setIsHovered] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const { save, saving, error } = useTracking();
 
   const handleSave = async () => {
     try {
+      setSaveSuccess(false);
       await save();
-      // Optionally show a success message
+      setSaveSuccess(true);
+      // Clear success message after 3 seconds
+      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
       // Error is handled in context
       console.error('Failed to save:', err);
+      setSaveSuccess(false);
     }
   };
 
@@ -35,15 +40,35 @@ export default function SaveButtonSection() {
         boxSizing: 'border-box'
       }}
     >
+      {/* Success Message */}
+      {saveSuccess && !error && (
+        <div style={{ 
+          color: '#16A34A', 
+          fontSize: '14px', 
+          textAlign: 'center',
+          width: '100%',
+          padding: '8px',
+          backgroundColor: '#F0FDF4',
+          borderRadius: '8px',
+          border: '1px solid #86EFAC'
+        }}>
+          ✓ Saved successfully!
+        </div>
+      )}
+
       {/* Error Message */}
       {error && (
         <div style={{ 
           color: '#EF4444', 
           fontSize: '14px', 
           textAlign: 'center',
-          width: '100%'
+          width: '100%',
+          padding: '8px',
+          backgroundColor: '#FEF2F2',
+          borderRadius: '8px',
+          border: '1px solid #FCA5A5'
         }}>
-          {error}
+          ✗ {error}
         </div>
       )}
 

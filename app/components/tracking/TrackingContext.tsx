@@ -61,8 +61,10 @@ export function TrackingProvider({
         notes,
         healthActivities,
       });
+      // Success - error will be cleared by saveDailyLog on success
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save';
+      setError(errorMessage);
       throw err;
     } finally {
       setSaving(false);
