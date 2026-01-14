@@ -36,14 +36,18 @@ export default function CycleSummary({ month, year }: CycleSummaryProps) {
     );
   }
 
-  const cycleLength = healthReport?.averageCycleLength || 28;
-  const periodLength = healthReport?.averagePeriodLength || 5;
+  // Use data from backend health report
+  const cycleLength = healthReport?.averageCycleLength || 0;
+  const periodLength = healthReport?.averagePeriodLength || 0;
+  const totalCycles = healthReport?.totalCycles || 0;
   
-  // Calculate estimated next period (simplified - using average cycle length)
+  // Calculate estimated next period (using average cycle length from backend)
   const estimatedNextPeriod = new Date();
-  estimatedNextPeriod.setDate(estimatedNextPeriod.getDate() + cycleLength);
+  if (cycleLength > 0) {
+    estimatedNextPeriod.setDate(estimatedNextPeriod.getDate() + cycleLength);
+  }
   
-  // Calculate ovulation window (typically days 12-16, simplified to days 14-16)
+  // Calculate ovulation window (typically 14-16 days from period start, using average cycle length)
   const ovulationStart = new Date();
   ovulationStart.setDate(ovulationStart.getDate() + 14);
   const ovulationEnd = new Date();
@@ -78,7 +82,7 @@ export default function CycleSummary({ month, year }: CycleSummaryProps) {
           marginBottom: '16px'
         }}
       >
-        Cycle Summary - {monthNames[month - 1]} {year}
+        Cycle Summary - {monthNames[month - 1]} {year} {totalCycles > 0 && `(${totalCycles} cycle${totalCycles !== 1 ? 's' : ''})`}
       </h2>
 
       {/* Badges - Top Row */}

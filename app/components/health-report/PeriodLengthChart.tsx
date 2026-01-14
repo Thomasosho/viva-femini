@@ -1,6 +1,8 @@
 'use client';
 
 import { useHealthReport } from '../../hooks/use-health-reports';
+import { useEffect, useState } from 'react';
+import { dailyLogsApi, DailyLog } from '../../lib/api/daily-logs';
 
 interface PeriodLengthChartProps {
   month: number;
@@ -9,8 +11,40 @@ interface PeriodLengthChartProps {
 
 export default function PeriodLengthChart({ month, year }: PeriodLengthChartProps) {
   const { healthReport, loading } = useHealthReport(month, year);
+  const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
 
-  if (loading) {
+  // Fetch daily logs for the month to get flow intensity data
+  useEffect(() => {
+    const fetchDailyLogs = async () => {
+      try {
+        setLogsLoading(true);
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0);
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = endDate.toISOString().split('T')[0];
+        const logs = await dailyLogsApi.getAll(startDateStr, endDateStr);
+        setDailyLogs(logs);
+      } catch (err) {
+        console.error('Failed to load daily logs:', err);
+        setDailyLogs([]);
+      } finally {
+        setLogsLoading(false);
+      }
+    };
+    fetchDailyLogs();
+  }, [month, year]);
+
+  // Process daily logs to create chart data
+  const chartData = dailyLogs
+    .filter(log => log.isPeriodDay && log.flowIntensity > 0)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .map(log => ({
+      date: new Date(log.date),
+      flowIntensity: log.flowIntensity || 0,
+    }));
+
+  if (loading || logsLoading) {
     return (
       <div 
         className="bg-white border-0 w-full"
@@ -34,8 +68,33 @@ export default function PeriodLengthChart({ month, year }: PeriodLengthChartProp
     );
   }
 
-  // Use periodLengthHistory from health report, or create sample data if not available
+  // Use periodLengthHistory from health report for reference
   const periodHistory = healthReport?.periodLengthHistory || [];
+  
+  // Prepare chart points from daily logs
+  const maxFlow = 10;
+  const chartHeight = 131;
+  
+  // Create points for the chart (only period days with flow)
+  const chartPoints = chartData.map((log, index) => {
+    const x = 20 + (index * (460 / Math.max(chartData.length - 1, 1)));
+    const y = chartHeight - (log.flowIntensity / maxFlow * chartHeight);
+    return { x, y, value: log.flowIntensity, date: log.date };
+  });
+
+  // Generate path for line chart
+  const pathD = chartPoints.length > 0
+    ? chartPoints.reduce((path, point, index) => {
+        return index === 0 
+          ? `M ${point.x} ${point.y}`
+          : `${path} L ${point.x} ${point.y}`;
+      }, '')
+    : '';
+
+  // Format dates for x-axis
+  const xAxisDates = chartPoints.length > 0 
+    ? chartPoints.map(p => p.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }))
+    : [];
   
   return (
     <div 
@@ -129,32 +188,50 @@ export default function PeriodLengthChart({ month, year }: PeriodLengthChartProp
           }}
         >
           {/* X-axis labels - positioned at bottom */}
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '-35px',
-              width: '100%',
-              display: 'flex',
-              justifyContent: 'space-between',
-              paddingLeft: '0',
-              paddingRight: '0'
-            }}
-          >
-            {['2025-10-07', '2025-10-09', '2025-10-10', '2025-10-11'].map((date) => (
-              <span
-                key={date}
-                style={{
-                  fontFamily: 'Geist, sans-serif',
-                  fontSize: '10px',
-                  fontWeight: 400,
-                  color: '#6B7280',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {date}
-              </span>
-            ))}
-          </div>
+          {xAxisDates.length > 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '-35px',
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'space-between',
+                paddingLeft: '0',
+                paddingRight: '0'
+              }}
+            >
+              {xAxisDates.map((date, index) => (
+                <span
+                  key={`${date}-${index}`}
+                  style={{
+                    fontFamily: 'Geist, sans-serif',
+                    fontSize: '10px',
+                    fontWeight: 400,
+                    color: '#6B7280',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {date}
+                </span>
+              ))}
+            </div>
+          )}
+          
+          {xAxisDates.length === 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '-35px',
+                width: '100%',
+                textAlign: 'center',
+                fontFamily: 'Geist, sans-serif',
+                fontSize: '12px',
+                color: '#9CA3AF'
+              }}
+            >
+              No period data for this month
+            </div>
+          )}
 
           {/* Line Chart */}
           <svg
@@ -202,29 +279,20 @@ export default function PeriodLengthChart({ month, year }: PeriodLengthChartProp
               strokeWidth="1"
             />
 
-            {/* Data line - realistic period flow pattern */}
-            {/* Y-axis: 0 (top, value=10) to 131 (bottom, value=0) */}
-            {/* Conversion: y = 131 - (value/10 * 131) */}
-            <path
-              d="M 20 131 L 80 131 L 140 98 L 200 26 L 260 65 L 320 98 L 380 131 L 440 131 L 480 131"
-              stroke="#FB3179"
-              strokeWidth="3"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            {/* Data line from backend daily logs */}
+            {pathD && (
+              <path
+                d={pathD}
+                stroke="#FB3179"
+                strokeWidth="3"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            )}
 
-            {/* Data points - evenly distributed across dates */}
-            {[
-              { x: 20, y: 131, value: 0 },   // Day 1 - baseline
-              { x: 80, y: 131, value: 0 },   // Day 2 - baseline
-              { x: 140, y: 98, value: 2.5 }, // Day 3 - starting
-              { x: 200, y: 26, value: 8 },   // Day 4 - peak
-              { x: 260, y: 65, value: 5 },   // Day 5 - decreasing
-              { x: 320, y: 98, value: 2.5 }, // Day 6 - light
-              { x: 380, y: 131, value: 0 },  // Day 7 - baseline
-              { x: 440, y: 131, value: 0 },  // Day 8 - baseline
-            ].map((point, i) => (
+            {/* Data points from backend daily logs */}
+            {chartPoints.map((point, i) => (
               <circle
                 key={i}
                 cx={point.x}
@@ -235,6 +303,22 @@ export default function PeriodLengthChart({ month, year }: PeriodLengthChartProp
                 strokeWidth="2"
               />
             ))}
+            
+            {/* Show message if no data */}
+            {chartPoints.length === 0 && (
+              <text
+                x="250"
+                y="65"
+                textAnchor="middle"
+                style={{
+                  fontFamily: 'Geist, sans-serif',
+                  fontSize: '14px',
+                  fill: '#9CA3AF'
+                }}
+              >
+                No period data available
+              </text>
+            )}
           </svg>
         </div>
       </div>
