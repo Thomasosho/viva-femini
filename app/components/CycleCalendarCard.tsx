@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useCurrentCycle } from '../hooks/use-cycles';
 import { dailyLogsApi } from '../lib/api/daily-logs';
+import { cyclesApi } from '../lib/api/cycles';
 import CreateCycleModal from './CreateCycleModal';
 import EditCycleModal from './EditCycleModal';
 
@@ -43,38 +44,110 @@ export default function CycleCalendarCard() {
   const [periodDates, setPeriodDates] = useState<Set<string>>(new Set());
   const [loadingPeriods, setLoadingPeriods] = useState(false);
 
-  // Fetch period dates for the selected month
+  // Calculate period dates from cycles and daily logs
   useEffect(() => {
-    const fetchPeriodDates = async () => {
+    const calculatePeriodDates = async () => {
       setLoadingPeriods(true);
       try {
+        const periodSet = new Set<string>();
+        
+        // First, get period days from daily logs (manually logged)
         const startOfMonth = new Date(selectedYear, selectedMonth, 1);
         const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
         const startDate = startOfMonth.toISOString().split('T')[0];
         const endDate = endOfMonth.toISOString().split('T')[0];
-        const logs = await dailyLogsApi.getAll(startDate, endDate);
-        const periodSet = new Set<string>();
-        logs.forEach(log => {
-          if (log.isPeriodDay) {
-            // Extract day of month and store as string for matching
-            const logDate = new Date(log.date);
-            // Ensure we're comparing dates in the same month/year context
-            if (logDate.getMonth() === selectedMonth && logDate.getFullYear() === selectedYear) {
-              periodSet.add(logDate.getDate().toString());
+        
+        try {
+          const logs = await dailyLogsApi.getAll(startDate, endDate);
+          logs.forEach(log => {
+            if (log.isPeriodDay) {
+              const logDate = new Date(log.date);
+              if (logDate.getMonth() === selectedMonth && logDate.getFullYear() === selectedYear) {
+                periodSet.add(logDate.getDate().toString());
+              }
             }
-          }
-        });
-        console.log('Period dates loaded for', monthNames[selectedMonth], selectedYear, ':', Array.from(periodSet));
+          });
+        } catch (err) {
+          console.error('Failed to load daily logs:', err);
+        }
+        
+        // Also calculate period days from cycle data
+        // Get all cycles (we'll filter them to find ones that overlap with the selected month)
+        try {
+          // Get a wider date range to ensure we catch all relevant cycles
+          const searchStart = new Date(selectedYear, selectedMonth - 1, 1); // Previous month
+          const searchEnd = new Date(selectedYear, selectedMonth + 2, 0); // Next month
+          
+          const cycles = await cyclesApi.getAll(
+            searchStart.toISOString().split('T')[0],
+            searchEnd.toISOString().split('T')[0]
+          );
+          
+          console.log('[Calendar] Found cycles:', cycles.length);
+          
+          cycles.forEach(cycle => {
+            if (cycle.startDate && cycle.periodLength) {
+              // Parse the start date - handle both ISO string and date object
+              let cycleStart: Date;
+              if (typeof cycle.startDate === 'string') {
+                // If it's a string like "2026-01-14", create date at midnight UTC, then adjust to local
+                const dateStr = cycle.startDate.split('T')[0]; // Remove time if present
+                const [year, month, day] = dateStr.split('-').map(Number);
+                cycleStart = new Date(year, month - 1, day); // month is 0-indexed in JS Date
+              } else {
+                cycleStart = new Date(cycle.startDate);
+              }
+              
+              const periodLength = cycle.periodLength || 5;
+              
+              console.log('[Calendar] Processing cycle:', {
+                startDate: cycle.startDate,
+                periodLength,
+                cycleStart: cycleStart.toISOString(),
+                cycleStartLocal: cycleStart.toLocaleDateString(),
+                selectedMonth,
+                selectedYear
+              });
+              
+              // Calculate all period days for this cycle
+              for (let i = 0; i < periodLength; i++) {
+                const periodDay = new Date(cycleStart);
+                periodDay.setDate(periodDay.getDate() + i);
+                
+                // Check if this period day falls within the selected month
+                const periodMonth = periodDay.getMonth();
+                const periodYear = periodDay.getFullYear();
+                
+                if (periodMonth === selectedMonth && periodYear === selectedYear) {
+                  const dayStr = periodDay.getDate().toString();
+                  periodSet.add(dayStr);
+                  console.log('[Calendar] ✓ Added period day:', dayStr, 'from cycle starting', cycle.startDate, 
+                    `(periodDay: ${periodDay.toLocaleDateString()}, month: ${periodMonth}, year: ${periodYear})`);
+                } else {
+                  console.log('[Calendar] ✗ Skipped period day:', periodDay.toLocaleDateString(), 
+                    `(month: ${periodMonth} vs ${selectedMonth}, year: ${periodYear} vs ${selectedYear})`);
+                }
+              }
+            }
+          });
+          
+          console.log('[Calendar] Final period dates Set:', Array.from(periodSet));
+        } catch (err) {
+          console.error('Failed to load cycles:', err);
+        }
+        
+        const sortedPeriodDates = Array.from(periodSet).sort((a, b) => Number(a) - Number(b));
+        console.log('[Calendar] Period dates for', monthNames[selectedMonth], selectedYear, ':', sortedPeriodDates);
         setPeriodDates(periodSet);
       } catch (err) {
-        console.error('Failed to load period dates:', err);
-        setPeriodDates(new Set()); // Reset on error
+        console.error('Failed to calculate period dates:', err);
+        setPeriodDates(new Set());
       } finally {
         setLoadingPeriods(false);
       }
     };
-    fetchPeriodDates();
-  }, [selectedMonth, selectedYear]);
+    calculatePeriodDates();
+  }, [selectedMonth, selectedYear, cycle?._id, cycle?.startDate, cycle?.periodLength]);
 
   // Calculate cycle day from current cycle
   const cycleDay = useMemo(() => {
@@ -175,7 +248,13 @@ export default function CycleCalendarCard() {
   // Check if date has event (period day)
   const hasEvent = (day: number | null) => {
     if (day === null) return false;
-    const hasPeriod = datesWithEvents.has(day.toString());
+    const dayStr = day.toString();
+    const hasPeriod = datesWithEvents.has(dayStr);
+    // Debug: log periodically to see what's in the Set
+    if (datesWithEvents.size > 0 && day === 1) {
+      console.log('[Calendar] hasEvent check - periodDates Set:', Array.from(datesWithEvents).sort((a, b) => Number(a) - Number(b)));
+      console.log('[Calendar] Checking day', dayStr, '- hasPeriod:', hasPeriod);
+    }
     return hasPeriod;
   };
   
