@@ -7,13 +7,27 @@ import FlowSymptomSummary from "../components/health-report/FlowSymptomSummary";
 import PeriodLengthChart from "../components/health-report/PeriodLengthChart";
 import SymptomFrequency from "../components/health-report/SymptomFrequency";
 import HistoricalCycleData from "../components/health-report/HistoricalCycleData";
+import { useHealthReport } from '../hooks/use-health-reports';
 
 export default function HealthReportPage() {
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1); // 1-12
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
+  const { generateReport, loading: generating } = useHealthReport(selectedMonth, selectedYear);
+  const [generateSuccess, setGenerateSuccess] = useState(false);
 
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  const handleGenerateReport = async () => {
+    try {
+      setGenerateSuccess(false);
+      await generateReport();
+      setGenerateSuccess(true);
+      setTimeout(() => setGenerateSuccess(false), 3000);
+    } catch (err) {
+      console.error('Failed to generate report:', err);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -38,14 +52,15 @@ export default function HealthReportPage() {
             gap: '20px'
           }}
         >
-          {/* Month/Year Selector */}
+          {/* Month/Year Selector and Generate Button */}
           <div 
             style={{ 
               display: 'flex', 
               justifyContent: 'center', 
               gap: '12px', 
               marginBottom: '10px',
-              alignItems: 'center'
+              alignItems: 'center',
+              flexWrap: 'wrap'
             }}
           >
             <label 
@@ -107,7 +122,46 @@ export default function HealthReportPage() {
                 <option key={year} value={year}>{year}</option>
               ))}
             </select>
+            
+            {/* Generate Report Button */}
+            <button
+              onClick={handleGenerateReport}
+              disabled={generating}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: '#FB3179',
+                color: 'white',
+                fontSize: '14px',
+                fontFamily: 'Geist, sans-serif',
+                fontWeight: 500,
+                cursor: generating ? 'not-allowed' : 'pointer',
+                opacity: generating ? 0.6 : 1,
+                transition: 'opacity 0.2s ease',
+                marginLeft: '12px'
+              }}
+            >
+              {generating ? 'Generating...' : generateSuccess ? '✓ Generated!' : 'Generate Report'}
+            </button>
           </div>
+
+          {/* Success Message */}
+          {generateSuccess && (
+            <div style={{
+              padding: '12px 16px',
+              backgroundColor: '#F0FDF4',
+              border: '1px solid #86EFAC',
+              borderRadius: '8px',
+              color: '#16A34A',
+              fontSize: '14px',
+              textAlign: 'center',
+              fontFamily: 'Geist, sans-serif',
+              marginBottom: '10px'
+            }}>
+              ✓ Health report generated successfully for {monthNames[selectedMonth - 1]} {selectedYear}
+            </div>
+          )}
 
           {/* Top Row - Cycle Summary and Flow & Symptom Summary */}
           <div
