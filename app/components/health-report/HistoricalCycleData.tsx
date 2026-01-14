@@ -136,7 +136,7 @@ export default function HistoricalCycleData({ month, year }: HistoricalCycleData
                 lineHeight: '1.2'
               }}
             >
-              {monthNames[currentMonth - 1]} {currentYear}
+              {monthNames[month - 1]} {year}
             </span>
             {/* Dropdown arrow icon placeholder */}
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
