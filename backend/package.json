@@ -4,6 +4,7 @@
   "description": "VivaFemini Backend API",
   "main": "dist/main.js",
   "scripts": {
+    "prebuild": "rm -rf dist || true",
     "build": "tsc",
     "start": "node dist/main.js",
     "start:dev": "tsx watch src/main.ts",
