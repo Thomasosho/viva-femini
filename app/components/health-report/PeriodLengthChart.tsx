@@ -23,7 +23,9 @@ export default function PeriodLengthChart({ month, year }: PeriodLengthChartProp
         const endDate = new Date(year, month, 0);
         const startDateStr = startDate.toISOString().split('T')[0];
         const endDateStr = endDate.toISOString().split('T')[0];
+        console.log('[PeriodLengthChart] Fetching daily logs for:', { month, year, startDateStr, endDateStr });
         const logs = await dailyLogsApi.getAll(startDateStr, endDateStr);
+        console.log('[PeriodLengthChart] Fetched logs:', logs.length, logs);
         setDailyLogs(logs);
       } catch (err) {
         console.error('Failed to load daily logs:', err);
@@ -36,13 +38,20 @@ export default function PeriodLengthChart({ month, year }: PeriodLengthChartProp
   }, [month, year]);
 
   // Process daily logs to create chart data
+  // Show period days - include those with isPeriodDay=true, even if flowIntensity is 0 or not set
   const chartData = dailyLogs
-    .filter(log => log.isPeriodDay && log.flowIntensity > 0)
+    .filter(log => {
+      const isPeriod = log.isPeriodDay === true;
+      console.log('[PeriodLengthChart] Checking log:', { date: log.date, isPeriodDay: log.isPeriodDay, flowIntensity: log.flowIntensity, isPeriod });
+      return isPeriod;
+    })
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .map(log => ({
       date: new Date(log.date),
-      flowIntensity: log.flowIntensity || 0,
+      flowIntensity: log.flowIntensity || 1, // Default to 1 if not set, so it shows on the chart
     }));
+  
+  console.log('[PeriodLengthChart] Chart data:', chartData.length, chartData);
 
   if (loading || logsLoading) {
     return (
