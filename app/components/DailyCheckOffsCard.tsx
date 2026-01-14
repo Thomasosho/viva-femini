@@ -1,18 +1,27 @@
 'use client';
 
 import { useDailyLog } from '../hooks/use-daily-log';
+import { useHealthReport } from '../hooks/use-health-reports';
 
 export default function DailyCheckOffsCard() {
-  const today = new Date().toISOString().split('T')[0];
-  const { dailyLog, loading } = useDailyLog(today);
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  const currentMonth = today.getMonth() + 1; // getMonth() returns 0-11, so add 1
+  const currentYear = today.getFullYear();
+  
+  const { dailyLog, loading: dailyLogLoading } = useDailyLog(todayStr);
+  const { healthReport, loading: healthReportLoading } = useHealthReport(currentMonth, currentYear);
 
   const symptomsText = dailyLog?.symptoms && dailyLog.symptoms.length > 0
     ? dailyLog.symptoms.join(', ')
     : 'None logged';
 
-  const healthActivitiesText = dailyLog?.healthActivities && dailyLog.healthActivities.length > 0
-    ? dailyLog.healthActivities[0] + (dailyLog.healthActivities.length > 1 ? ` (+${dailyLog.healthActivities.length - 1})` : '')
+  // Check if health report exists for current month/year
+  const healthReportText = healthReport 
+    ? `Available` 
     : 'None logged';
+
+  const loading = dailyLogLoading || healthReportLoading;
 
   if (loading) {
     return (
@@ -167,12 +176,12 @@ export default function DailyCheckOffsCard() {
               fontFamily: 'Geist, sans-serif',
               fontSize: '12px',
               fontWeight: 700,
-              color: healthActivitiesText !== 'None logged' ? '#16A34A' : '#6B7280',
+              color: healthReportText !== 'None logged' ? '#16A34A' : '#6B7280',
               lineHeight: '100%',
               letterSpacing: '-0.03em'
             }}
           >
-            {healthActivitiesText !== 'None logged' ? `${healthActivitiesText} (Logged)` : healthActivitiesText}
+            {healthReportText}
           </span>
       </div>
     </div>
