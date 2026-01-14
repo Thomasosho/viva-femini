@@ -56,13 +56,18 @@ export default function CycleCalendarCard() {
         const periodSet = new Set<string>();
         logs.forEach(log => {
           if (log.isPeriodDay) {
+            // Extract day of month and store as string for matching
             const logDate = new Date(log.date);
-            periodSet.add(logDate.getDate().toString());
+            // Ensure we're comparing dates in the same month/year context
+            if (logDate.getMonth() === selectedMonth && logDate.getFullYear() === selectedYear) {
+              periodSet.add(logDate.getDate().toString());
+            }
           }
         });
         setPeriodDates(periodSet);
       } catch (err) {
         console.error('Failed to load period dates:', err);
+        setPeriodDates(new Set()); // Reset on error
       } finally {
         setLoadingPeriods(false);
       }
@@ -210,22 +215,31 @@ export default function CycleCalendarCard() {
     let border = '0.43px solid #FFFFFF';
     let color = '#FFFFFF';
     
-    // Priority: Selected > Current > Event > Default
+    // Priority: Selected > Period Day (event) > Current > Default
+    // Period days should always be highlighted (pink) unless selected
     if (selected) {
       backgroundColor = '#0D34F9';
+      border = '0.43px solid #FFFFFF';
+      color = '#FFFFFF';
+    } else if (event) {
+      // Period day - highlight in pink
+      backgroundColor = '#FB3179';
       border = '0.43px solid #FFFFFF';
       color = '#FFFFFF';
     } else if (current) {
       backgroundColor = '#FFFFFF';
       border = '0.43px solid #FFFFFF';
       color = '#000000';
-    } else if (event) {
-      backgroundColor = '#FB3179';
-      border = '0.43px solid #FFFFFF';
-      color = '#FFFFFF';
     } else {
       backgroundColor = 'transparent';
       border = '0.43px solid #FFFFFF';
+      color = '#FFFFFF';
+    }
+    
+    // If current day is also a period day, add a pink border or indicator
+    if (current && event && !selected) {
+      backgroundColor = '#FB3179';
+      border = '2px solid #FFFFFF';
       color = '#FFFFFF';
     }
     
