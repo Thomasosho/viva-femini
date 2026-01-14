@@ -20,7 +20,7 @@ async function createApp() {
   const app = await NestFactory.create(AppModule, new ExpressAdapter(expressApp));
 
   // Enable CORS for frontend
-  const allowedOrigins = [
+  const allowedOrigins = [ 
     'http://localhost:3000',
     'https://viva-femini-lemon.vercel.app',
     process.env.FRONTEND_URL,
