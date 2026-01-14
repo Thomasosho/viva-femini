@@ -14,6 +14,153 @@ export default function HistoricalCycleData({ month, year }: HistoricalCycleData
 
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+  const handleDownloadPDF = () => {
+    if (tableData.length === 0) {
+      return;
+    }
+
+    // Create HTML content for the PDF
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Historical Cycle Data - ${monthNames[month - 1]} ${year}</title>
+          <style>
+            body {
+              font-family: 'Arial', sans-serif;
+              padding: 40px;
+              color: #0F172A;
+              background: white;
+            }
+            h1 {
+              font-size: 24px;
+              font-weight: 600;
+              margin-bottom: 8px;
+              color: #0F172A;
+            }
+            .subtitle {
+              font-size: 14px;
+              color: #6B7280;
+              margin-bottom: 32px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+            }
+            th {
+              text-align: left;
+              padding: 12px;
+              font-size: 14px;
+              font-weight: 600;
+              color: #0F172A;
+              border-bottom: 2px solid #E5E7EB;
+            }
+            th.center {
+              text-align: center;
+            }
+            td {
+              padding: 12px;
+              font-size: 14px;
+              color: #0F172A;
+              border-bottom: 1px solid #E5E7EB;
+            }
+            td.center {
+              text-align: center;
+            }
+            .date-time {
+              display: flex;
+              flex-direction: column;
+              gap: 4px;
+            }
+            .date-main {
+              font-size: 14px;
+            }
+            .date-time-sub {
+              font-size: 12px;
+              color: #6B7280;
+            }
+            .footer {
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 1px solid #E5E7EB;
+              font-size: 12px;
+              color: #6B7280;
+              text-align: center;
+            }
+            @media print {
+              body {
+                padding: 20px;
+              }
+              @page {
+                margin: 1cm;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Historical Cycle Data</h1>
+          <div class="subtitle">${monthNames[month - 1]} ${year}</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th class="center">Top Symptom</th>
+                <th class="center">Total Symptoms</th>
+                <th>Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableData.map(row => `
+                <tr>
+                  <td>
+                    <div class="date-time">
+                      <span class="date-main">${row.date}</span>
+                      ${row.time ? `<span class="date-time-sub">${row.time}</span>` : ''}
+                    </div>
+                  </td>
+                  <td class="center">${row.topSymptom}</td>
+                  <td class="center">${row.totalSymptoms}</td>
+                  <td>${row.note}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="footer">
+            Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        </body>
+      </html>
+    `;
+
+    // Create a blob with the HTML content
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    
+    // Create a temporary link and trigger download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Historical_Cycle_Data_${monthNames[month - 1]}_${year}.html`;
+    document.body.appendChild(link);
+    link.click();
+    
+    // Clean up
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    // Also open in a new window so user can print/save as PDF
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      // Auto-print after a short delay
+      setTimeout(() => {
+        printWindow.print();
+      }, 250);
+    }
+  };
+
   useEffect(() => {
     const loadDailyLogs = async () => {
       setLoading(true);
@@ -147,6 +294,8 @@ export default function HistoricalCycleData({ month, year }: HistoricalCycleData
 
         {/* Download PDF Button */}
         <button
+          onClick={handleDownloadPDF}
+          disabled={tableData.length === 0}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -154,16 +303,18 @@ export default function HistoricalCycleData({ month, year }: HistoricalCycleData
             padding: '0 16px',
             height: '36px',
             borderRadius: '18px',
-            backgroundColor: '#B32070',
+            backgroundColor: tableData.length === 0 ? '#D1D5DB' : '#B32070',
             border: '0.7px solid rgba(179, 32, 112, 0.17)',
             outline: 'none',
-            cursor: 'pointer',
+            cursor: tableData.length === 0 ? 'not-allowed' : 'pointer',
             fontFamily: 'Geist, sans-serif',
             fontSize: '14px',
             fontWeight: 500,
             color: 'white',
             lineHeight: '1.2',
-            flexShrink: 0
+            flexShrink: 0,
+            opacity: tableData.length === 0 ? 0.6 : 1,
+            transition: 'all 0.2s ease'
           }}
         >
           {/* Download icon placeholder */}
